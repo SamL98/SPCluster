@@ -1,0 +1,8 @@
+/__pycache__/
+/sputil.egg-info/
+.cache-*
+/.ipynb_checkpoints/
+*.csv
+/data/
+*.txt
+*.ipynb
