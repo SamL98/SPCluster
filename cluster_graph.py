@@ -5,35 +5,7 @@ import sys
 from os.path import isfile
 from sputil import fetch_library, get_track, read_spcsv
 
-def read_similair_pairs(fov):
-	print('Reading similar pairs into DataFrame')
-	similar_pairs = pd.read_csv('data/similar_pairs_fov%d.csv' % fov)
-
-	tids = similar_pairs.loc[:,'tid1'].values
-	tids = np.concatenate((tids, similar_pairs.loc[:,'tid2'].values))
-	tids = np.unique(tids)
-
-	return similar_pairs, tids
-
-def create_transition_matrix(similar_pairs, num_tid):
-	print('Creating the transition matrix')
-	T = np.zeros((num_tid, num_tid), dtype=np.float64)
-	tids = []
-
-	for _, row in similar_pairs.iterrows():
-		id1, id2 = row.tid1, row.tid2
-
-		idx1 = len(tids)
-		if id1 in tids: idx1 = tids.index(id1)
-		else: 			tids.append(id1)
-
-		idx2 = len(tids)
-		if id2 in tids: idx2 = tids.index(id2)
-		else: 			tids.append(id2)
-
-		T[idx2, idx1] += row.weight
-
-	return T
+from graph_utils import *
 
 def perform_MCL(T, e=2, p=2, max_iter=100):	
 	print('Performing MCL on the similarity graph')
@@ -130,7 +102,7 @@ if __name__ == '__main__':
 	if len(sys.argv) > 1:
 		fov = int(sys.argv[1])
 
-	similar_pairs, tids = read_similair_pairs(fov)
+	similar_pairs, tids = read_similar_pairs(fov)
 	T = create_transition_matrix(similar_pairs, len(tids))
 	T = perform_MCL(T)
 	clusters = parse_clusters(T)
