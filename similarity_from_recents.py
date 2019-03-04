@@ -34,7 +34,8 @@ def process_session(session, fov):
 def get_session_idxs(times, durations):
 	dts = times[1:] - times[:-1]
 	diffs = np.abs(dts - durations[:-1])
-	return np.argwhere(diffs > 2*durations[:-1]).ravel()
+	idxs = np.argwhere(diffs > 2*durations[:-1]).ravel()
+	return np.concatenate((idxs, [len(times)]))
 
 def read_rp_time_data(fov):
 	sp_dir = os.environ['SPPATH']
@@ -43,7 +44,7 @@ def read_rp_time_data(fov):
 	times = np.array(recents.timestamp)
 
 	if isfile('.last-f%d.txt' % fov):
-		with open('.last.txt') as f:
+		with open('.last-f%d.txt') as f:
 			last_ts = int(f.read())
 		
 		mask = times>last_ts

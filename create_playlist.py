@@ -4,6 +4,7 @@ from os.path import isfile
 
 from sputil import read_spcsv, fetch_library, get_track
 from graph_utils import *
+from track_utils import *
 
 def traverse_graph(T, seed_idx, tids, length=10):
 	T[seed_idx,:] = 0
@@ -36,50 +37,28 @@ def traverse_graph(T, seed_idx, tids, length=10):
 	print('Path of length %d traversed' % len(path))
 	return path
 
-def convert_path_to_playlist(path, tids):
-	library = fetch_library()
+def create_playlist(fov, seed):
+	similar_pairs, tids = read_similair_pairs(fov)
+	assert seed in tids, 'Must select a seed within the existing tids.'
 
-	misc_track_fname = 'other_tracks.csv'
-	other_tracks = pd.DataFrame(columns=library.columns)
+	T = create_transition_matrix(similar_pairs, len(tids))
+	path = traverse_graph(T, np.argwhere(tids == seed).ravel()[0], tids)
 
-	if isfile(misc_track_fname):
-		other_tracks = read_spcsv(misc_track_fname)
-
-	init_num_other_tracks = len(other_tracks)
-
+	tid_path = []
 	for idx in path:
-		tid = tids[idx]
-		rows = library.loc[lambda t: t.id == tid]
+		tid_path.append(tids.index(idx))
 
-		if len(rows) == 0:
-			rows = other_tracks.loc[lambda t: t.id == tid]
+	return tid_path
 
-			if len(rows) == 0:
-				track = get_track(tid)
-				if track is None: continue
-
-				title, artist = track['title'], track['artist']
-				other_tracks.append(track, ignore_index=True)
-			else:
-				row = rows.iloc[0,:]
-				title, artist = row.title, row.artist
-		else:
-			row = rows.iloc[0,:]
-			title, artist = row.title, row.artist
-
+def print_playlist(playlist):
+	for tid in playlist:
+		title, artist = get_track_metadata(tid)
 		print(f'{title} -- {artist}')
-
-	if len(other_tracks) > init_num_other_tracks:
-		other_tracks.to_csv(misc_track_fname)
 
 
 if __name__ == '__main__':
 	fov = int(sys.argv[1])
 	seed = sys.argv[2]
 
-	similar_pairs, tids = read_similair_pairs(fov)
-	assert seed in tids, 'Must select a seed within the existing tids.'
-
-	T = create_transition_matrix(similar_pairs, len(tids))
-	path = traverse_graph(T, np.argwhere(tids == seed).ravel()[0], tids)
-	convert_path_to_playlist(path, tids)
+	playlist = create_playlist(fov, seed)
+	print_playlist(playlist)
